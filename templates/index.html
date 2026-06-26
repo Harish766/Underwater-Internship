@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infrastructure Monitoring Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col font-sans relative antialiased overflow-x-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/20 via-slate-950 to-slate-950">
+
+  <header class="border-b border-slate-800/60 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50 px-6 py-4 transition-all duration-300 shadow-sm shadow-slate-950/20">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+          </span>
+          <h1 class="text-xl font-bold tracking-tight text-slate-100 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Infrastructure Monitoring System</h1>
+        </div>
+        <p class="text-[11px] font-medium text-slate-400/80 mt-0.5 tracking-wide uppercase font-mono">Bharat Forge Marine Division</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/analytics" class="px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-950/30">
+          View Analytics Dashboard →
+        </a>
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shadow-inner backdrop-blur-sm">
+          Backend: Connected
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+    
+    <div class="lg:col-span-4 flex flex-col gap-6">
+      
+      <section class="bg-gradient-to-b from-slate-900/95 to-slate-900/70 border border-slate-800/80 rounded-2xl p-6 shadow-2xl shadow-black/40 flex flex-col justify-between backdrop-blur-sm hover:border-slate-700/60 transition-all duration-300">
+        <div>
+          <div class="flex items-center gap-3 mb-5">
+            <div class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20 shadow-inner">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <h2 class="font-semibold text-slate-100 tracking-tight text-md">1. Upload Video Processing</h2>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="uploadModule" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Target Inspection Module</label>
+              <select id="uploadModule" class="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200 cursor-pointer appearance-none">
+                <option value="pipeline">Pipeline (crack / corrosion / rust)</option>
+                <option value="underwater">Underwater (coral / debris)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Select Media File</label>
+              <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-slate-800 hover:border-slate-600 bg-slate-950/40 hover:bg-slate-950/70 rounded-xl cursor-pointer transition-all group p-4 text-center">
+                <div class="flex flex-col items-center justify-center">
+                  <p class="text-xs font-medium text-slate-400 group-hover:text-slate-200 transition-colors" id="fileNameDisplay">Click to browse file</p>
+                  <p class="text-[10px] text-slate-500 mt-1.5 font-mono">MP4 / AVI / MOV / MKV</p>
+                </div>
+                <input type="file" id="videoFile" accept="video/*" class="hidden" onchange="document.getElementById('fileNameDisplay').textContent = this.files[0]?.name || 'Click to browse file'">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="uploadVideo()" class="w-full mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-medium text-sm py-3 px-4 rounded-xl transition-all duration-200 shadow-xl shadow-emerald-950/30 hover:shadow-emerald-500/10 flex items-center justify-center gap-2 tracking-wide">
+          <span>Process Batch Video</span>
+        </button>
+      </section>
+
+      <section class="bg-gradient-to-b from-slate-900/95 to-slate-900/70 border border-slate-800/80 rounded-2xl p-6 shadow-2xl shadow-black/40 flex flex-col justify-between flex-1 backdrop-blur-sm hover:border-slate-700/60 transition-all duration-300">
+        <div>
+          <div class="flex items-center gap-3 mb-5">
+            <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 shadow-inner">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </div>
+            <h2 class="font-semibold text-slate-100 tracking-tight text-md">2. Real-Time Telemetry</h2>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label for="webcamModule" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Inspection Module</label>
+              <select id="webcamModule" class="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200 cursor-pointer appearance-none">
+                <option value="pipeline">Pipeline (crack / corrosion / rust)</option>
+                <option value="underwater">Underwater (coral / debris)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-6">
+          <button id="startBtn" onclick="startWebcam()" class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-slate-800/50 disabled:text-slate-600 disabled:cursor-not-allowed text-white font-medium text-sm py-3 px-4 rounded-xl transition-all duration-200 shadow-xl shadow-indigo-950/30 hover:shadow-indigo-500/10 tracking-wide">
+            Start Stream
+          </button>
+          <button id="stopBtn" onclick="stopWebcam()" disabled class="bg-rose-600 hover:bg-rose-500 active:bg-rose-700 disabled:bg-slate-800/50 disabled:text-slate-600 disabled:cursor-not-allowed text-white font-medium text-sm py-3 px-4 rounded-xl transition-all duration-200 shadow-xl tracking-wide">
+            Stop Stream
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div class="lg:col-span-8 flex flex-col gap-6">
+      
+      <div class="bg-gradient-to-b from-slate-900/95 to-slate-900/70 border border-slate-800/80 rounded-2xl p-5 shadow-2xl shadow-black/40 flex-1 flex flex-col backdrop-blur-sm">
+        <div class="flex items-center justify-between border-b border-slate-800/60 pb-4 mb-4">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Annotated Feed</span>
+          <div id="streamIndicator" class="hidden items-center gap-2 text-xs font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full shadow-inner">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span> LIVE
+          </div>
+        </div>
+        
+        <div class="flex-1 flex items-center justify-center bg-slate-950 rounded-xl border border-slate-900 overflow-hidden relative min-h-[360px] shadow-inner">
+          <video id="rawVideo" autoplay playsinline class="hidden"></video>
+          <canvas id="captureCanvas" class="hidden"></canvas>
+          <img id="annotatedImg" class="w-full h-full max-h-[520px] object-contain object-center transition-all duration-300" alt="Initialize a stream or upload a video to begin.">
+          <div class="absolute inset-0 pointer-events-none border border-slate-800/20 rounded-xl m-1"></div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/95 border border-slate-800/80 rounded-2xl p-5 shadow-2xl shadow-black/40 h-56 flex flex-col backdrop-blur-sm">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/60 pb-3 mb-3 flex justify-between items-center">
+          <span>Terminal Logs</span>
+          <button onclick="document.getElementById('uploadResult').textContent=''; document.getElementById('webcamLog').textContent='';" class="text-[10px] text-slate-500 hover:text-indigo-400 transition-colors font-sans tracking-normal border border-slate-800 bg-slate-950/40 px-2 py-0.5 rounded-md hover:border-slate-700">Clear</button>
+        </div>
+        
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono overflow-hidden">
+          <div class="flex flex-col h-full">
+            <span class="text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider font-sans">REST API Output</span>
+            <div id="uploadResult" class="flex-1 bg-slate-950/80 p-3 rounded-xl border border-slate-900 overflow-y-auto text-emerald-400/90 whitespace-pre-wrap leading-relaxed shadow-inner"></div>
+          </div>
+          <div class="flex flex-col h-full">
+            <span class="text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider font-sans">WebSocket Logs</span>
+            <div id="webcamLog" class="flex-1 bg-slate-950/80 p-3 rounded-xl border border-slate-900 overflow-y-auto text-indigo-400/90 whitespace-pre-wrap leading-relaxed shadow-inner"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+  async function uploadVideo() {
+    const fileInput = document.getElementById("videoFile");
+    const module = document.getElementById("uploadModule").value;
+    const resultBox = document.getElementById("uploadResult");
+
+    if (!fileInput.files.length) { resultBox.textContent = "Please choose a video file first."; return; }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    formData.append("module", module);
+    resultBox.textContent = "Processing... please wait.";
+
+    try {
+      const response = await fetch("/api/process_video", { method: "POST", body: formData });
+      const data = await response.json();
+      resultBox.textContent = JSON.stringify(data, null, 2);
+      if (data.session_id) {
+        resultBox.textContent += "\n\n✅ Done! Click 'View Analytics Dashboard' in the header to analyse this session.";
+      }
+    } catch (err) { resultBox.textContent = "Error: " + err.message; }
+  }
+
+  let ws = null, mediaStream = null, captureInterval = null;
+  const TARGET_FPS = 5;
+  const rawVideo = document.getElementById("rawVideo");
+  const captureCanvas = document.getElementById("captureCanvas");
+  const annotatedImg = document.getElementById("annotatedImg");
+  const webcamLog = document.getElementById("webcamLog");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const streamIndicator = document.getElementById("streamIndicator");
+
+  function logLine(text) { webcamLog.textContent = text + "\n" + webcamLog.textContent; }
+  function wsUrl(path) {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}${path}`;
+  }
+
+  async function startWebcam() {
+    const module = document.getElementById("webcamModule").value;
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      rawVideo.srcObject = mediaStream;
+      ws = new WebSocket(wsUrl("/ws/webcam"));
+      ws.onopen = () => ws.send(JSON.stringify({ type: "start", module }));
+      ws.onmessage = (event) => handleServerMessage(JSON.parse(event.data));
+      ws.onerror = () => logLine("WebSocket error - is server running?");
+      ws.onclose = () => { logLine("WebSocket closed."); cleanupUI(); };
+      startBtn.disabled = true; stopBtn.disabled = false;
+      streamIndicator.classList.remove("hidden"); streamIndicator.classList.add("flex");
+    } catch (err) { logLine("Camera error: " + err.message); }
+  }
+
+  function handleServerMessage(data) {
+    if (data.type === "started") {
+      logLine("Session: " + data.session_id);
+      captureInterval = setInterval(captureAndSendFrame, 1000 / TARGET_FPS);
+    } else if (data.type === "result") {
+      annotatedImg.src = data.annotated_image;
+      if (data.detections.length > 0)
+        logLine(`Frame ${data.frame_number}: ` + data.detections.map(d => `${d.class_name}(${d.severity})`).join(", "));
+    } else if (data.type === "stopped") {
+      logLine("Finalized: " + JSON.stringify(data));
+    } else if (data.type === "error") {
+      logLine("ERROR: " + data.error);
+    }
+  }
+
+  function captureAndSendFrame() {
+    if (!rawVideo.videoWidth || !ws || ws.readyState !== WebSocket.OPEN) return;
+    captureCanvas.width = rawVideo.videoWidth;
+    captureCanvas.height = rawVideo.videoHeight;
+    captureCanvas.getContext("2d").drawImage(rawVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+    // FIXED: was toToDataURL (typo), now correctly toDataURL
+    ws.send(JSON.stringify({ type: "frame", image: captureCanvas.toDataURL("image/jpeg", 0.7) }));
+  }
+
+  function cleanupUI() {
+    clearInterval(captureInterval);
+    startBtn.disabled = false; stopBtn.disabled = true;
+    streamIndicator.classList.add("hidden"); streamIndicator.classList.remove("flex");
+  }
+
+  function stopWebcam() {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "stop" }));
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    cleanupUI();
+  }
+  </script>
+</body>
+</html>

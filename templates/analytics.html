@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Analytics Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    .chart-card { background: linear-gradient(to bottom, rgba(15,23,42,0.95), rgba(15,23,42,0.7)); border: 1px solid rgba(30,41,59,0.8); border-radius: 1rem; padding: 1.25rem; }
+    .metric-card { background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(2,6,23,0.8)); border: 1px solid rgba(30,41,59,0.8); border-radius: 1rem; padding: 1.25rem; transition: border-color 0.2s; }
+    .metric-card:hover { border-color: rgba(99,102,241,0.3); }
+    .severity-CRITICAL { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+    .severity-HIGH     { color: #f97316; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.05); }
+    .severity-WARNING  { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+    .severity-OK       { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+    .tab-active { border-bottom: 2px solid #6366f1; color: #a5b4fc; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #64748b; }
+  </style>
+</head>
+<body class="min-h-full font-sans antialiased bg-slate-950">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800/60 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-screen-2xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 class="text-lg font-bold text-slate-100">Pipeline Inspection Analytics</h1>
+        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Bharat Forge Marine Division</p>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <select id="sessionSelect"
+          class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 font-mono focus:outline-none focus:border-indigo-500 cursor-pointer">
+          <option value="">— Select a session —</option>
+        </select>
+        <button onclick="loadAnalytics()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-lg shadow-indigo-950/30">
+          Load Analytics
+        </button>
+        <a href="/" class="text-slate-400 hover:text-slate-200 text-sm border border-slate-800 px-3 py-2 rounded-lg transition-colors">
+          ← Back
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- LOADING STATE -->
+  <div id="loadingState" class="hidden flex-col items-center justify-center py-32 gap-4">
+    <div class="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-slate-400 text-sm font-mono">Running analytics engine...</p>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="emptyState" class="flex flex-col items-center justify-center py-32 gap-3 text-center px-4">
+    <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-2">
+      <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <p class="text-slate-300 font-semibold">No session selected</p>
+    <p class="text-slate-500 text-sm max-w-sm">Select a session from the dropdown above and click Load Analytics to view inspection results.</p>
+  </div>
+
+  <!-- MAIN DASHBOARD -->
+  <main id="dashboard" class="hidden max-w-screen-2xl mx-auto px-4 md:px-6 py-6 space-y-6">
+
+    <!-- METRIC CARDS ROW -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" id="metricCards"></div>
+
+    <!-- ALERTS BANNER -->
+    <div id="alertsSection" class="space-y-2"></div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="border-b border-slate-800">
+      <nav class="flex gap-0 overflow-x-auto">
+        <button onclick="showTab('overview')"  id="tab-overview"  class="tab-active px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Overview</button>
+        <button onclick="showTab('spatial')"   id="tab-spatial"   class="tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Spatial Analysis</button>
+        <button onclick="showTab('temporal')"  id="tab-temporal"  class="tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Temporal</button>
+        <button onclick="showTab('anomaly')"   id="tab-anomaly"   class="tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Anomaly Detection</button>
+        <button onclick="showTab('profiles')"  id="tab-profiles"  class="tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Defect Profiles</button>
+        <button onclick="showTab('trend')"     id="tab-trend"     class="tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all">Trend (Cross-Session)</button>
+      </nav>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div id="panel-overview" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="lg:col-span-4 chart-card"><div id="chart-gauge" style="height:280px"></div></div>
+      <div class="lg:col-span-4 chart-card"><div id="chart-defect-counts" style="height:280px"></div></div>
+      <div class="lg:col-span-4 chart-card"><div id="chart-severity-donut" style="height:280px"></div></div>
+      <div class="lg:col-span-6 chart-card"><div id="chart-confidence" style="height:300px"></div></div>
+      <div class="lg:col-span-6 chart-card"><div id="chart-size-dist" style="height:300px"></div></div>
+    </div>
+
+    <!-- TAB: SPATIAL -->
+    <div id="panel-spatial" class="hidden space-y-4">
+      <div class="chart-card"><div id="chart-zone" style="height:320px"></div></div>
+      <div id="heatmapGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- TAB: TEMPORAL -->
+    <div id="panel-temporal" class="hidden space-y-4">
+      <div class="chart-card"><div id="chart-timeline" style="height:360px"></div></div>
+    </div>
+
+    <!-- TAB: ANOMALY -->
+    <div id="panel-anomaly" class="hidden space-y-4">
+      <div class="chart-card"><div id="chart-anomaly" style="height:360px"></div></div>
+      <div id="anomalyTable" class="chart-card"></div>
+    </div>
+
+    <!-- TAB: PROFILES -->
+    <div id="panel-profiles" class="hidden">
+      <div class="chart-card overflow-x-auto">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Per-Defect Profile Table (one row per unique Track ID)</p>
+        <table class="w-full text-xs font-mono text-left" id="profileTable">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-500">
+              <th class="pb-2 pr-4">Track ID</th>
+              <th class="pb-2 pr-4">Class</th>
+              <th class="pb-2 pr-4">Max Severity</th>
+              <th class="pb-2 pr-4">Max Area (px²)</th>
+              <th class="pb-2 pr-4">Avg Confidence</th>
+              <th class="pb-2 pr-4">First Seen (s)</th>
+              <th class="pb-2 pr-4">Last Seen (s)</th>
+              <th class="pb-2 pr-4">Duration (s)</th>
+              <th class="pb-2">Zone</th>
+            </tr>
+          </thead>
+          <tbody id="profileTableBody" class="divide-y divide-slate-900"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: TREND -->
+    <div id="panel-trend" class="hidden space-y-4">
+      <div class="chart-card"><div id="chart-trend" style="height:480px"></div></div>
+      <div id="sessionHistoryTable" class="chart-card overflow-x-auto"></div>
+    </div>
+
+  </main>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────
+const SEVERITY_COLORS = {
+  CRITICAL: '#ef4444', HIGH: '#f97316',
+  MODERATE: '#eab308', LOW: '#22c55e', OK: '#10b981'
+};
+
+const CLASS_COLORS = {
+  crack: '#f87171', corrosion: '#fb923c',
+  rust: '#facc15', deformation: '#e879f9',
+};
+
+// ─────────────────────────────────────────────────────────────
+// SESSION LOADER
+// ─────────────────────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const res = await fetch('/api/sessions');
+    const data = await res.json();
+    const sel = document.getElementById('sessionSelect');
+    data.sessions.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.session_id;
+      opt.textContent = `${s.session_id} | ${s.module} | ${s.source_type} | defects: ${s.total_unique_defects}`;
+      sel.appendChild(opt);
+    });
+  } catch (e) { console.error('Failed to load sessions:', e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN ANALYTICS LOADER
+// ─────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const sessionId = document.getElementById('sessionSelect').value;
+  if (!sessionId) { alert('Please select a session first.'); return; }
+
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('loadingState').classList.remove('hidden');
+  document.getElementById('loadingState').classList.add('flex');
+
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/analytics`);
+    const data = await res.json();
+
+    if (data.error) { alert('Error: ' + data.error); return; }
+
+    renderMetricCards(data);
+    renderAlerts(data.alerts);
+    renderCharts(data.charts);
+    renderHeatmaps(data.charts.heatmaps);
+    renderAnomalyTable(data.anomalies);
+    renderProfileTable(data.defect_profiles);
+    renderSessionHistoryTable(data);
+
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('loadingState').classList.remove('flex');
+    document.getElementById('dashboard').classList.remove('hidden');
+
+  } catch (e) {
+    alert('Failed to load analytics: ' + e.message);
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('loadingState').classList.remove('flex');
+    document.getElementById('emptyState').classList.remove('hidden');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// METRIC CARDS
+// ─────────────────────────────────────────────────────────────
+function renderMetricCards(data) {
+  const cards = [
+    { label: 'Integrity Index', value: `${data.integrity.score}/100`, sub: data.integrity.status, color: data.integrity.color },
+    { label: 'Total Unique Defects', value: data.integrity ? Object.values(data.unique_defects).reduce((a,b)=>a+b,0) : 0, sub: 'unique track IDs', color: '#6366f1' },
+    { label: 'Cracks', value: data.unique_defects.crack ?? 0, sub: 'unique', color: '#f87171' },
+    { label: 'Corrosion', value: data.unique_defects.corrosion ?? 0, sub: 'unique', color: '#fb923c' },
+    { label: 'Rust', value: data.unique_defects.rust ?? 0, sub: 'unique', color: '#facc15' },
+    { label: 'Anomalies', value: data.anomaly_count, sub: 'flagged seconds', color: data.anomaly_count > 0 ? '#ef4444' : '#10b981' },
+  ];
+
+  document.getElementById('metricCards').innerHTML = cards.map(c => `
+    <div class="metric-card">
+      <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:${c.color}">${c.label}</p>
+      <p class="text-3xl font-bold font-mono text-slate-100">${c.value}</p>
+      <p class="text-xs text-slate-500 mt-1">${c.sub}</p>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// ALERTS
+// ─────────────────────────────────────────────────────────────
+function renderAlerts(alerts) {
+  if (!alerts || !alerts.length) return;
+  document.getElementById('alertsSection').innerHTML = alerts.map(a => `
+    <div class="severity-${a.severity} border rounded-xl px-5 py-3 flex items-start gap-4">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-0.5">
+          <span class="text-[10px] font-bold font-mono uppercase tracking-widest">${a.type}</span>
+          <span class="text-[10px] text-slate-500 font-mono">${a.timestamp}</span>
+          ${a.action_required ? '<span class="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30">ACTION REQUIRED</span>' : ''}
+        </div>
+        <p class="text-sm">${a.message}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLOTLY CHARTS
+// ─────────────────────────────────────────────────────────────
+function renderChart(divId, chartJson) {
+  if (!chartJson || !chartJson.data) return;
+  Plotly.newPlot(divId, chartJson.data, chartJson.layout, {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['lasso2d','select2d'],
+    displaylogo: false,
+    toImageButtonOptions: { format: 'png', filename: divId },
+  });
+}
+
+function renderCharts(charts) {
+  renderChart('chart-gauge',        charts.integrity_gauge);
+  renderChart('chart-defect-counts',charts.defect_counts);
+  renderChart('chart-severity-donut',charts.severity_donut);
+  renderChart('chart-confidence',   charts.confidence_violin);
+  renderChart('chart-size-dist',    charts.size_distribution);
+  renderChart('chart-zone',         charts.zone_analysis);
+  renderChart('chart-timeline',     charts.activity_timeline);
+  renderChart('chart-anomaly',      charts.anomaly_timeline);
+  renderChart('chart-trend',        charts.comparative_trend);
+}
+
+function renderHeatmaps(heatmaps) {
+  if (!heatmaps) return;
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+  Object.entries(heatmaps).forEach(([cls, chartJson]) => {
+    if (!chartJson || !chartJson.data) return;
+    const div = document.createElement('div');
+    div.className = 'chart-card';
+    const inner = document.createElement('div');
+    inner.id = `heatmap-${cls}`;
+    inner.style.height = '300px';
+    div.appendChild(inner);
+    grid.appendChild(div);
+    Plotly.newPlot(`heatmap-${cls}`, chartJson.data, chartJson.layout, {
+      responsive: true, displayModeBar: false, displaylogo: false,
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// ANOMALY TABLE
+// ─────────────────────────────────────────────────────────────
+function renderAnomalyTable(anomalies) {
+  const container = document.getElementById('anomalyTable');
+  if (!anomalies || !anomalies.length) {
+    container.innerHTML = '<p class="text-sm text-slate-500 text-center py-6">No anomalies detected in this session.</p>';
+    return;
+  }
+  container.innerHTML = `
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">${anomalies.length} Anomalous Second(s) Flagged by IsolationForest</p>
+    <table class="w-full text-xs font-mono text-left">
+      <thead><tr class="border-b border-slate-800 text-slate-500">
+        <th class="pb-2 pr-4">Second</th>
+        <th class="pb-2 pr-4">Total Detections</th>
+        <th class="pb-2 pr-4">Cracks</th>
+        <th class="pb-2">Corrosion</th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-900">
+        ${anomalies.map(a => `
+          <tr class="text-red-400/80 hover:bg-red-500/5">
+            <td class="py-2 pr-4">${a.second}</td>
+            <td class="py-2 pr-4">${a.total}</td>
+            <td class="py-2 pr-4">${a.crack}</td>
+            <td class="py-2">${a.corrosion}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PROFILE TABLE
+// ─────────────────────────────────────────────────────────────
+function renderProfileTable(profiles) {
+  const body = document.getElementById('profileTableBody');
+  if (!profiles || !profiles.length) {
+    body.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-500">No defects detected.</td></tr>';
+    return;
+  }
+  const sevColor = s => SEVERITY_COLORS[s] || '#64748b';
+  body.innerHTML = profiles.map(p => `
+    <tr class="hover:bg-slate-900/50 transition-colors">
+      <td class="py-2 pr-4 text-indigo-400">#${p.track_id}</td>
+      <td class="py-2 pr-4" style="color:${CLASS_COLORS[p.class_name] || '#e2e8f0'}">${p.class_name}</td>
+      <td class="py-2 pr-4 font-bold" style="color:${sevColor(p.max_severity)}">${p.max_severity}</td>
+      <td class="py-2 pr-4 text-slate-300">${p.max_area}</td>
+      <td class="py-2 pr-4 text-slate-300">${(p.avg_confidence * 100).toFixed(1)}%</td>
+      <td class="py-2 pr-4 text-slate-400">${p.first_seen}s</td>
+      <td class="py-2 pr-4 text-slate-400">${p.last_seen}s</td>
+      <td class="py-2 pr-4 text-slate-400">${p.duration_sec}s</td>
+      <td class="py-2 text-slate-400">${p.primary_zone}</td>
+    </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// SESSION HISTORY TABLE (cross-session comparative view)
+// ─────────────────────────────────────────────────────────────
+async function renderSessionHistoryTable() {
+  const container = document.getElementById('sessionHistoryTable');
+  try {
+    const res = await fetch('/api/sessions');
+    const data = await res.json();
+    if (!data.sessions.length) { container.innerHTML = ''; return; }
+
+    container.innerHTML = `
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">All Sessions — Comparative View</p>
+      <table class="w-full text-xs font-mono text-left">
+        <thead><tr class="border-b border-slate-800 text-slate-500">
+          <th class="pb-2 pr-4">Session ID</th>
+          <th class="pb-2 pr-4">Module</th>
+          <th class="pb-2 pr-4">Source</th>
+          <th class="pb-2 pr-4">Created</th>
+          <th class="pb-2 pr-4">Frames</th>
+          <th class="pb-2 pr-4">Total Unique</th>
+          <th class="pb-2 pr-4">Cracks</th>
+          <th class="pb-2 pr-4">Corrosion</th>
+          <th class="pb-2 pr-4">Rust</th>
+          <th class="pb-2">Critical</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-900">
+          ${data.sessions.map(s => `
+            <tr class="hover:bg-slate-900/50 cursor-pointer transition-colors" onclick="jumpToSession('${s.session_id}')">
+              <td class="py-2 pr-4 text-indigo-400 truncate max-w-[180px]">${s.session_id}</td>
+              <td class="py-2 pr-4 text-slate-300">${s.module}</td>
+              <td class="py-2 pr-4 text-slate-400">${s.source_type}</td>
+              <td class="py-2 pr-4 text-slate-400">${s.created_at?.slice(0,16).replace('T',' ')}</td>
+              <td class="py-2 pr-4 text-slate-300">${s.frames_processed}</td>
+              <td class="py-2 pr-4 font-bold text-slate-200">${s.total_unique_defects}</td>
+              <td class="py-2 pr-4 text-red-400">${s.crack_count}</td>
+              <td class="py-2 pr-4 text-orange-400">${s.corrosion_count}</td>
+              <td class="py-2 pr-4 text-yellow-400">${s.rust_count}</td>
+              <td class="py-2 text-red-500 font-bold">${s.critical_severity_count}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) { console.error(e); }
+}
+
+function jumpToSession(sid) {
+  document.getElementById('sessionSelect').value = sid;
+  loadAnalytics();
+}
+
+// ─────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────
+const TABS = ['overview','spatial','temporal','anomaly','profiles','trend'];
+function showTab(name) {
+  TABS.forEach(t => {
+    document.getElementById(`panel-${t}`).classList.add('hidden');
+    document.getElementById(`tab-${t}`).className = 'tab-inactive px-5 py-3 text-sm font-medium whitespace-nowrap transition-all';
+  });
+  document.getElementById(`panel-${name}`).classList.remove('hidden');
+  document.getElementById(`tab-${name}`).className = 'tab-active px-5 py-3 text-sm font-medium whitespace-nowrap transition-all';
+
+  // Resize charts when tab becomes visible (Plotly needs this)
+  setTimeout(() => {
+    document.querySelectorAll(`#panel-${name} [id^="chart-"], #panel-${name} [id^="heatmap-"]`).forEach(el => {
+      Plotly.Plots.resize(el);
+    });
+  }, 50);
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+loadSessions();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+session_id,module,source_type,video_source,created_at,frames_processed,fps,processing_time_sec,total_detections_logged,total_unique_defects,crack_count,corrosion_count,rust_count,deformation_count,coral_count,debris_count,critical_severity_count,high_severity_count,moderate_severity_count,low_severity_count
+underwater_upload_20260626_113543_80dd00,underwater,upload,/home/ntguest/Desktop/Backendfront/uploads/check.mp4,2026-06-26T11:35:43.946918,512,25.0,42.43,116,2,0,0,0,0,0,0,0,0,0,2
+pipeline_upload_20260626_113739_fa8f64,pipeline,upload,/home/ntguest/Desktop/Backendfront/uploads/cors.mp4,2026-06-26T11:37:39.825701,558,30.0,19.81,551,5,2,0,0,0,0,0,0,0,5,0
